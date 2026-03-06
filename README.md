@@ -2,8 +2,6 @@
 
 ## 1. Compile source code
 
-In das-project/Homework_1/c_src/
-
 ```bash
 make
 ```
