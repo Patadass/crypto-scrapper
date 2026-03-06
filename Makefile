@@ -1,4 +1,4 @@
-src = $(wildcard ./c_src/*.c)
+src = $(wildcard ./src/*.c)
 CFLAGS = -lcurl
 
 all:
