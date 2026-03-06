@@ -20,7 +20,7 @@ This starts 10 instances of the program (if -t is not provided it starts 4).
 The resulting data is placed in a file named historical_data.csv
 
 If you want to set which assets the program collects, write the asset
-in the .allowed_assets file **(each asset must be written in a new line)**
+in the .allowed_assets file (if .allowed_assets doesn't exist the program generates one) **(each asset must be written in a new line)**
 
 ## 3. Using the program alone
 
