@@ -410,7 +410,7 @@ void help(){
     printf("--to\n");
     printf("\tset which coin to end with (number)\n\n");
     printf("--verbose\n");
-    printf("\texplain what is beeing done\n\n");
+    printf("\texplain what is being done\n\n");
 }
 
 int main(int argc, char** argv){
