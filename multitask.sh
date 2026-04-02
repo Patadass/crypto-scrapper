@@ -28,16 +28,16 @@ while true; do
 done
 
 
-/bin/time -f "%E" ./get_data.out --get-exchange-info --verbose
-coins=$(./get_data.out --has-exchange-info --get-number-of-coins)
+/bin/time -f "%E" ./get_data.out -ev
+coins=$(./get_data.out -ig)
 
 part=$(expr $coins / $tasks)
 i=1
 c=0
 while [ $i -le $tasks ]
 do
-    /bin/time -f "task ${i} %E" ./get_data.out --has-exchange-info --bfile ${i}.out --hfile ${i}h.out --csvfile ${i}.csv --no-csv-head --from $c --to $(( $c + $part )) &
-    echo "/bin/time -f 'task ${i} %E' ./get_data.out --has-exchange-info --bfile ${i}.out --hfile ${i}h.out --csvfile ${i}.csv --no-csv-head --from $c --to $(( $c + $part )) &"
+    /bin/time -f "task ${i} %E" ./get_data.out -in -b ${i}.out -H ${i}h.out -c ${i}.csv -f $c -t $(( $c + $part )) &
+    echo "/bin/time -f "task ${i} %E" ./get_data.out -in -b ${i}.out -H ${i}h.out -c ${i}.csv -f $c -t $(( $c + $part )) &"
     c=$(( $c + $part ))
     i=$(( $i + 1 ))
 done
