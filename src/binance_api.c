@@ -4,6 +4,8 @@
 #include <curl/curl.h>
 #include <string.h>
 #include <time.h>
+#include <getopt.h>
+#include <err.h>
 
 #include "cJSON.h"
 
@@ -13,7 +15,7 @@ char* BASE_API_URL = "https://api.binance.com/api/v3";
 char* CSV_FILENAME = "historical_data.csv";
 char* ALLOWED_ASSET_ENV = ".allowed_assets";
 
-int VERBOSE = 1;
+int VERBOSE = 0;
 
 //write to file function for curl
 static size_t write_cb(void* ptr, size_t size, size_t nmemb, void* stream){
@@ -144,7 +146,7 @@ void add_to_csv(cJSON* json, char* symbol, char* filename){
     }
 
     //if verbose is enabled
-    if(VERBOSE == 0){
+    if(VERBOSE == 1){
         printf("Adding data to csv for symbol %s\n", symbol);
     }
 
@@ -215,7 +217,7 @@ void get_historical_data(char* symbol){
     while(start <= end){
         char* url = make_url_from_interval(start, symbol);
 
-        if(VERBOSE == 0){
+        if(VERBOSE == 1){
             printf("getting historical data for %s\n", symbol);
             printf("from %s", asctime(gmtime(&start)));
         }
@@ -242,12 +244,12 @@ void get_historical_data(char* symbol){
         cJSON_Delete(part);
     }
 
-    if(VERBOSE == 0){
+    if(VERBOSE == 1){
         printf("found %ld days for %s\n", found_days, symbol);
     }
 }
 
-int HAS_EXCHANGE_INFO = 1;
+int HAS_EXCHANGE_INFO = 0;
 //returns a cJSON object with the exchange info
 cJSON* get_exchange_info(){
     //create url
@@ -257,13 +259,13 @@ cJSON* get_exchange_info(){
     strcat(url, param);
     //
 
-    if(VERBOSE == 0){
+    if(VERBOSE == 1){
         printf("Getting exchangeInfo\n");
     }
 
     cJSON* json = NULL;
     //if arg --has-exchange-info is provided dont make an api call
-    if(HAS_EXCHANGE_INFO == 1){
+    if(HAS_EXCHANGE_INFO == 0){
         make_call(url, "head.out", "body.out");
         json = parse_to_json("body.out");
     }else{
@@ -274,7 +276,7 @@ cJSON* get_exchange_info(){
     return json;
 }
 
-int HAVE_HEAD = 0;
+int HAVE_HEAD = 1;
 //creates the .csv file
 void create_csv(){
     //open and truncate file
@@ -284,7 +286,7 @@ void create_csv(){
         return;
     }
     //if arg --no-csv-head is not provided write the head
-    if(HAVE_HEAD == 0){
+    if(HAVE_HEAD == 1){
         fprintf(csv, "coin_id,symbol,date,open,high,low,close,volume,market_cap");
     }
     fclose(csv);
@@ -388,107 +390,172 @@ void assets_print(allowed_assets_t* aa){
 }
 
 //prints help message
-void help(){
-    printf("-h  --help\n");
-    printf("\tshow this message\n\n");
-    printf("--bfile\n");
-    printf("\tset the name for the body file\n\n");
-    printf("--hfile\n");
-    printf("\tset the name for the header file (depreciated)\n\n");
-    printf("--csvfile\n");
-    printf("\tset the csv file\n\n");
-    printf("--no-csv-head\n");
-    printf("\twhen creating the csv file dont add the first line\n\n");
-    printf("--has-exchange-info\n");
-    printf("\tuse this tag if exchange info has already been collected\n\n");
-    printf("--get-exchange-info\n");
-    printf("\tjust get exchange info and do nothing else\n\n");
-    printf("--get-number-of-coins\n");
-    printf("\tget the number of valid coins from exchange info\n\n");
-    printf("--from\n");
-    printf("\tset which coin to start from (number)\n\n");
-    printf("--to\n");
-    printf("\tset which coin to end with (number)\n\n");
-    printf("--verbose\n");
-    printf("\texplain what is being done\n\n");
+const char* help(){
+    return "\nSyntax\n"
+    "-h  --help\n"
+    "\tshow this message\n\n"
+    "-b  --bfile\n"
+    "\tset the name for the body file\n\n"
+    "-H  --hfile\n"
+    "\tset the name for the header file (depreciated)\n\n"
+    "-c  --csvfile\n"
+    "\tset the csv file\n\n"
+    "-n  --no-csv-head\n"
+    "\twhen creating the csv file dont add the first line\n\n"
+    "-i  --has-exchange-info\n"
+    "\tuse this tag if exchange info has already been collected\n\n"
+    "-e  --get-exchange-info\n"
+    "\tjust get exchange info and do nothing else\n\n"
+    "-g  --get-number-of-coins\n"
+    "\tget the number of valid coins from exchange info\n\n"
+    "f   --from\n"
+    "\tset which coin to start from (number)\n\n"
+    "t   --to\n"
+    "\tset which coin to end with (number)\n\n"
+    "-v  --verbose\n"
+    "\texplain what is being done\n\n";
 }
 
 int main(int argc, char** argv){
     int from = 0;
     int to = 1000;
 
-    int only_get_info = 1;
-    int only_get_number_of_coins = 1;
+    int only_get_info = 0;
+    int only_get_number_of_coins = 0;
 
-    //arg handling
-    for(int i = 0;i < argc;i++){
-        if(strcmp(argv[i], "-h") == 0 || 
-                strcmp(argv[i], "--help") == 0){
-            help();
-            return 0;
-        }
-        if(strcmp(argv[i], "--has-exchange-info") == 0){
-            HAS_EXCHANGE_INFO = 0;
-            continue;
-        }
-        if(strcmp(argv[i], "--get-exchange-info") == 0){
-            only_get_info = 0;
-            continue;
-        }
-        if(strcmp(argv[i], "--get-number-of-coins") == 0){
-            only_get_number_of_coins = 0;
-            continue;
-        }
-        if(strcmp(argv[i], "--no-csv-head") == 0){
-            HAVE_HEAD = 1;
-            continue;
-        }
-        if(strcmp(argv[i], "--verbose") == 0){
-            VERBOSE = 0;
-        }
-        if(strcmp(argv[i], "--bfile") == 0){
-            if(i + 1 >= argc){
-                fprintf(stderr, "--bfile needs argument");
-                return -1;
+    int o;
+    int longoptind = 0;
+    struct option longopts[] = {
+        {"help", no_argument, NULL, 'h'},
+        {"bfile", required_argument, NULL, 'b'},
+        {"hfile", required_argument, NULL, 'H'},
+        {"csvfile", required_argument, NULL, 'c'},
+        {"no-csv-head", no_argument, NULL, 'n'},
+        {"has-exchange-info", no_argument, NULL, 'i'},
+        {"get-exchange-info", no_argument, NULL, 'e'},
+        {"get-number-of-coins", no_argument, NULL, 'g'},
+        {"from", required_argument, NULL, 'f'},
+        {"to", required_argument, NULL, 't'},
+        {"verbose", no_argument, NULL, 'v'}
+    };
+
+    int code = EXIT_FAILURE;
+    char *optstring = "hb:H:c:niegf:t:v";
+
+    while((o = getopt_long(argc, argv, optstring, longopts, &longoptind))
+            != -1){
+        switch(o){
+            case 'v':
+                VERBOSE = 1;
+                break;
+            case 'b': {
+                BODYFILENAME = optarg;
+                break;
             }
-            BODYFILENAME = argv[i + 1];
-            continue;
-        }
-        if(strcmp(argv[i], "--hfile") == 0){
-            if(i + 1 >= argc){
-                fprintf(stderr, "--hfile needs argument");
-                return -1;
+            case 'H': {
+                HEADERFILENAME = optarg;
+                break;
             }
-            HEADERFILENAME = argv[i + 1];
-            continue;
-        }
-        if(strcmp(argv[i], "--csvfile") == 0){
-            if(i + 1 >= argc){
-                fprintf(stderr, "--csvfile needs argument");
-                return -1;
+            case 'c': {
+                CSV_FILENAME = optarg;
+                break;
             }
-            CSV_FILENAME = argv[i + 1];
-            continue;
-        }
-        if(strcmp(argv[i], "--from") == 0){
-            if(i + 1 >= argc){
-                fprintf(stderr, "--from needs argument");
-                return -1;
+            case 'n':
+                HAVE_HEAD = 0;
+                break;
+            case 'i':
+                HAS_EXCHANGE_INFO = 1;
+                break;
+            case 'e':
+                only_get_info = 1;
+                break;
+            case 'g':
+                only_get_number_of_coins = 1;
+                break;
+            case 'f': {
+                from = atoi(optarg);
+                break;
             }
-            from = atoi(argv[i + 1]);
-        }
-        if(strcmp(argv[i], "--to") == 0){
-            if(i + 1 >= argc){
-                fprintf(stderr, "--to needs argument");
-                return -1;
+            case 't': {
+                to = atoi(optarg);
+                break;
             }
-            to = atoi(argv[i + 1]);
+            case 'h':
+                printf("%s", help());
+                return 0;
+            default:
+                errx(code, "Use -h or --help for help message");
         }
     }
+    //arg handling
+    // for(int i = 0;i < argc;i++){
+    //     if(strcmp(argv[i], "-h") == 0 || 
+    //             strcmp(argv[i], "--help") == 0){
+    //         help();
+    //         return 0;
+    //     }
+    //     if(strcmp(argv[i], "--has-exchange-info") == 0){
+    //         HAS_EXCHANGE_INFO = 0;
+    //         continue;
+    //     }
+    //     if(strcmp(argv[i], "--get-exchange-info") == 0){
+    //         only_get_info = 0;
+    //         continue;
+    //     }
+    //     if(strcmp(argv[i], "--get-number-of-coins") == 0){
+    //         only_get_number_of_coins = 0;
+    //         continue;
+    //     }
+    //     if(strcmp(argv[i], "--no-csv-head") == 0){
+    //         HAVE_HEAD = 1;
+    //         continue;
+    //     }
+    //     if(strcmp(argv[i], "--verbose") == 0){
+    //         VERBOSE = 0;
+    //     }
+    //     if(strcmp(argv[i], "--bfile") == 0){
+    //         if(i + 1 >= argc){
+    //             fprintf(stderr, "--bfile needs argument");
+    //             return -1;
+    //         }
+    //         BODYFILENAME = argv[i + 1];
+    //         continue;
+    //     }
+    //     if(strcmp(argv[i], "--hfile") == 0){
+    //         if(i + 1 >= argc){
+    //             fprintf(stderr, "--hfile needs argument");
+    //             return -1;
+    //         }
+    //         HEADERFILENAME = argv[i + 1];
+    //         continue;
+    //     }
+    //     if(strcmp(argv[i], "--csvfile") == 0){
+    //         if(i + 1 >= argc){
+    //             fprintf(stderr, "--csvfile needs argument");
+    //             return -1;
+    //         }
+    //         CSV_FILENAME = argv[i + 1];
+    //         continue;
+    //     }
+    //     if(strcmp(argv[i], "--from") == 0){
+    //         if(i + 1 >= argc){
+    //             fprintf(stderr, "--from needs argument");
+    //             return -1;
+    //         }
+    //         from = atoi(argv[i + 1]);
+    //     }
+    //     if(strcmp(argv[i], "--to") == 0){
+    //         if(i + 1 >= argc){
+    //             fprintf(stderr, "--to needs argument");
+    //             return -1;
+    //         }
+    //         to = atoi(argv[i + 1]);
+    //     }
+    // }
 
     cJSON* json = get_exchange_info();
 
-    if(only_get_info == 0){
+    if(only_get_info == 1){
         cJSON_Delete(json);
         return 0;
     }
@@ -514,7 +581,7 @@ int main(int argc, char** argv){
 
     assets_delete(aa);
 
-    if(only_get_number_of_coins == 0){
+    if(only_get_number_of_coins == 1){
         printf("%d\n", i);
         cJSON_Delete(json);
         return 0;
@@ -528,7 +595,7 @@ int main(int argc, char** argv){
         if(i >= size){
             break;
         }
-        if(VERBOSE == 0){
+        if(VERBOSE == 1){
             printf("\n%d/%d\n", i, size);
         }
         get_historical_data(c_symbols[i]);
