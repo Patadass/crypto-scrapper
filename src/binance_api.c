@@ -76,7 +76,7 @@ int make_call(const char* url, char* hfilename, char* bfilename){
         //set the url
         curl_easy_setopt(curl, CURLOPT_URL, url);
 
-        //follow rederection
+        //follow redirection
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
         //send data to write function
@@ -97,11 +97,11 @@ int make_call(const char* url, char* hfilename, char* bfilename){
         //GET
         res = curl_easy_perform(curl);
         if(res != CURLE_OK){//error handle
-            fprintf(stderr, "curl_easy_perform() failes: %s\n",
+            fprintf(stderr, "curl_easy_perform() failed: %s\n",
                     curl_easy_strerror(res));
         }
         fclose(bodyfile);
-        curl_easy_cleanup(curl);//clenup curl
+        curl_easy_cleanup(curl);//cleanup curl
     }
     curl_global_cleanup();
     return (int)res;
@@ -122,7 +122,7 @@ char* make_url_from_interval(size_t start, char* symbol){
     char* c_start = malloc(sizeof(char) * 14);
 
     sprintf(c_start, "%ld", start);
-    //binance api takes unix time with miliseconds so we have to add the zeros
+    //binance api takes unix time with milliseconds so we have to add the zeros
     strcat(c_start, "000");
     strcat(param, c_start);
     strcat(param, "&limit=1000");
@@ -192,10 +192,10 @@ void add_to_csv(cJSON* json, char* symbol, char* filename){
             }
             i++;
         }
-        //divide by 1000 becouse binanace usese miliseconds in unix time
+        //divide by 1000 because binanace uses milliseconds in unix time
         date = date / 1000;
         
-        //date formating
+        //date formatting
         struct tm *t = localtime(&date);
         strftime(frm_date, sizeof(frm_date), "%Y-%m-%d", t);
 
@@ -234,7 +234,7 @@ void get_historical_data(char* symbol){
         //
 
         /*
-         * make the start date the date of the last object from the previus call
+         * make the start date the date of the last object from the previous call
          * this way we get all available data for symbol in the least amount of api calls
          */
         start = last_date / 1000;
@@ -264,7 +264,7 @@ cJSON* get_exchange_info(){
     }
 
     cJSON* json = NULL;
-    //if arg --has-exchange-info is provided dont make an api call
+    //if arg --has-exchange-info is provided don't make an api call
     if(HAS_EXCHANGE_INFO == 0){
         make_call(url, "head.out", "body.out");
         json = parse_to_json("body.out");
@@ -314,7 +314,7 @@ void create_env(){
     fclose(f);
 }
 
-//returs an object of allowed_assets_t with from the contets of the .allowed_assets env file
+//returns an object of allowed_assets_t with from the contents of the .allowed_assets env file
 allowed_assets_t* assets_get(){
     allowed_assets_t* aa = malloc(sizeof *aa);
     //for storing asset names
@@ -348,7 +348,7 @@ allowed_assets_t* assets_get(){
         aa->assets[i] = malloc(sizeof(c_asset));
         strcpy(aa->assets[i], c_asset);
 
-        //replace the new line charecter if there is one with null
+        //replace the new line characters if there is one with null
         char* p = strchr(aa->assets[i], '\n');//finds first instance of '\n'
         if(p != NULL) *p = '\0';
     }
